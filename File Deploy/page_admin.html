@@ -1,0 +1,156 @@
+<div class="space-y-6 pb-12">
+  <div id="adminLoginBox" class="bg-white p-6 rounded-xl shadow-sm border max-w-md mx-auto mt-6">
+    <div class="text-center mb-4">
+      <span class="material-symbols-outlined text-primary text-5xl mb-2">lock_person</span>
+      <h2 class="text-lg font-bold text-gray-800">Login Admin Panel</h2>
+      <p class="text-xs text-gray-500">Masukkan kredensial untuk mengakses menu pengelolaan.</p>
+    </div>
+    <form onsubmit="handleAdminLogin(event)" class="space-y-3">
+      <div>
+        <label class="block text-xs font-bold text-gray-700 mb-1">Username</label>
+        <input type="text" id="loginUser" required class="w-full p-2.5 border rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-primary focus:outline-none" placeholder="admin">
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-gray-700 mb-1">Password</label>
+        <input type="password" id="loginPass" required class="w-full p-2.5 border rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-primary focus:outline-none" placeholder="••••••••">
+      </div>
+      <button type="submit" class="w-full bg-primary text-white font-bold py-2.5 rounded-lg text-sm shadow hover:opacity-90 transition">
+        Masuk Dashboard
+      </button>
+    </form>
+  </div>
+
+  <div id="adminDashboardContent" class="hidden space-y-6">
+    <div class="bg-primary text-white p-5 rounded-xl shadow flex justify-between items-center">
+      <div>
+        <h2 class="text-xl font-bold flex items-center">
+          <span class="material-symbols-outlined mr-2">admin_panel_settings</span> Admin Panel Al-Mubarok
+        </h2>
+        <p class="text-xs text-gray-200 mt-1">Upload konten baru dan kelola database secara instan.</p>
+      </div>
+      <button onclick="handleAdminLogout()" class="bg-red-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs shadow hover:bg-red-600 transition">
+        Logout
+      </button>
+    </div>
+
+    <div class="flex border-b bg-white rounded-t-xl overflow-hidden shadow-sm">
+      <button onclick="switchAdminTab('ebook')" id="tabBtnEbook" class="flex-1 py-3 text-[11px] font-bold text-primary border-b-2 border-primary bg-blue-50 transition">E-Book</button>
+      <button onclick="switchAdminTab('post')" id="tabBtnPost" class="flex-1 py-3 text-[11px] font-bold text-gray-500 transition">Postingan</button>
+      <button onclick="switchAdminTab('galeri')" id="tabBtnGaleri" class="flex-1 py-3 text-[11px] font-bold text-gray-500 transition">Galeri Foto</button>
+    </div>
+
+    <!-- Tab 1: E-Book -->
+    <div id="adminFormEbook" class="bg-white p-5 rounded-b-xl shadow-sm space-y-6 border border-t-0">
+      <div class="border-b pb-4">
+        <h3 class="font-bold text-sm text-gray-800 mb-3 flex items-center">
+          <span class="material-symbols-outlined text-primary mr-1">upload_file</span> Form Tambah E-Book Baru
+        </h3>
+        <form id="formUploadBook" onsubmit="submitBook(event)" class="space-y-3">
+          <div><label class="block text-xs font-bold text-gray-700 mb-1">Judul Buku *</label><input type="text" name="judul" required class="w-full p-2 border rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary"></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="block text-xs font-bold text-gray-700 mb-1">Penulis *</label><input type="text" name="penulis" required class="w-full p-2 border rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary"></div>
+            <div><label class="block text-xs font-bold text-gray-700 mb-1">Kategori *</label><select name="kategori" class="w-full p-2 border rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary"><option value="PAUD">PAUD</option><option value="DTA">DTA</option></select></div>
+          </div>
+          <div class="bg-gray-50 p-3 rounded-xl border space-y-2">
+            <label class="block text-xs font-bold text-gray-700">Sumber File PDF *</label>
+            <div class="flex space-x-4 text-xs font-semibold">
+              <label class="flex items-center cursor-pointer"><input type="radio" name="metodePdf" value="file" checked onchange="toggleMetodePdf('file')" class="mr-1.5"> Upload File PDF</label>
+              <label class="flex items-center cursor-pointer"><input type="radio" name="metodePdf" value="link" onchange="toggleMetodePdf('link')" class="mr-1.5"> Link URL PDF</label>
+            </div>
+            <div id="wrapperInputFile"><input type="file" name="pdfFile" accept=".pdf" class="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-primary mt-1"></div>
+            <div id="wrapperInputLink" class="hidden"><input type="url" name="linkPdfUrl" placeholder="https://drive.google.com/file/d/.../view" class="w-full p-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary mt-1"></div>
+          </div>
+          <div><label class="block text-xs font-bold text-gray-700 mb-1">Cover Buku (Opsional)</label><input type="file" name="coverFile" accept="image/*" class="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700"></div>
+          <button type="submit" id="btnSubmitBook" class="w-full bg-primary text-white font-bold py-2 rounded-lg text-sm shadow hover:opacity-95 transition">Simpan E-Book</button>
+        </form>
+      </div>
+      <div>
+        <h4 class="font-bold text-xs text-gray-700 mb-2 uppercase tracking-wider">Daftar E-Book di Server</h4>
+        <div class="overflow-x-auto border rounded-lg">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-gray-100 text-gray-700 border-b"><tr><th class="p-2.5">Judul Buku</th><th class="p-2.5">Kategori</th><th class="p-2.5 text-center">Aksi</th></tr></thead>
+            <tbody id="adminBookTableBody"><tr><td colspan="3" class="p-4 text-center text-gray-400">Memuat data...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 2: Postingan -->
+    <div id="adminFormPost" class="bg-white p-5 rounded-b-xl shadow-sm space-y-6 border border-t-0 hidden">
+      <div class="border-b pb-4">
+        <h3 class="font-bold text-sm text-gray-800 mb-3 flex items-center">
+          <span class="material-symbols-outlined text-yellow-600 mr-1">campaign</span> Form Buat Postingan / Berita
+        </h3>
+        <form id="formUploadPost" onsubmit="submitPost(event)" class="space-y-3">
+          <div><label class="block text-xs font-bold text-gray-700 mb-1">Judul Kegiatan *</label><input type="text" name="judul" required class="w-full p-2 border rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary"></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="block text-xs font-bold text-gray-700 mb-1">Kategori *</label><select name="kategori" class="w-full p-2 border rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary"><option value="Kegiatan">Kegiatan</option><option value="Pengumuman">Pengumuman</option><option value="Prestasi">Prestasi</option></select></div>
+            <div><label class="block text-xs font-bold text-gray-700 mb-1">Foto Dokumentasi *</label><input type="file" name="fotoFile" accept="image/*" required class="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-yellow-50 file:text-yellow-700"></div>
+          </div>
+          <div><label class="block text-xs font-bold text-gray-700 mb-1">Isi Berita *</label><textarea name="isi" rows="3" required class="w-full p-2 border rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary"></textarea></div>
+          <button type="submit" id="btnSubmitPost" class="w-full bg-yellow-600 text-white font-bold py-2 rounded-lg text-sm shadow hover:opacity-95 transition">Terbitkan Postingan</button>
+        </form>
+      </div>
+      <div>
+        <h4 class="font-bold text-xs text-gray-700 mb-2 uppercase tracking-wider">Daftar Postingan di Server</h4>
+        <div class="overflow-x-auto border rounded-lg">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-gray-100 text-gray-700 border-b"><tr><th class="p-2.5">Judul Berita</th><th class="p-2.5">Tanggal</th><th class="p-2.5 text-center">Aksi</th></tr></thead>
+            <tbody id="adminPostTableBody"><tr><td colspan="3" class="p-4 text-center text-gray-400">Memuat data...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 3: Galeri Foto -->
+    <div id="adminFormGaleri" class="bg-white p-5 rounded-b-xl shadow-sm space-y-6 border border-t-0 hidden">
+      <div class="border-b pb-4">
+        <h3 class="font-bold text-sm text-gray-800 mb-3 flex items-center">
+          <span class="material-symbols-outlined text-indigo-600 mr-1">photo_library</span> Upload Foto ke Galeri
+        </h3>
+        <form id="formUploadGaleri" onsubmit="submitGaleri(event)" class="space-y-3">
+          <div><label class="block text-xs font-bold text-gray-700 mb-1">Judul / Keterangan Foto *</label><input type="text" name="judul" required class="w-full p-2 border rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Misal: Kegiatan Senam Pagi PAUD"></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Kategori Galeri *</label>
+              <select name="kategori" class="w-full p-2 border rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="PAUD">Galeri PAUD</option>
+                <option value="Santri">Galeri Santri</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Pilih File Foto *</label>
+              <input type="file" name="fotoFile" accept="image/*" required class="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700">
+            </div>
+          </div>
+          <button type="submit" id="btnSubmitGaleri" class="w-full bg-indigo-600 text-white font-bold py-2 rounded-lg text-sm shadow hover:opacity-95 transition">Upload Foto Galeri</button>
+        </form>
+      </div>
+      <div>
+        <h4 class="font-bold text-xs text-gray-700 mb-2 uppercase tracking-wider">Daftar Foto Galeri di Server</h4>
+        <div class="overflow-x-auto border rounded-lg">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-gray-100 text-gray-700 border-b"><tr><th class="p-2.5">Judul Foto</th><th class="p-2.5">Kategori</th><th class="p-2.5 text-center">Aksi</th></tr></thead>
+            <tbody id="adminGaleriTableBody"><tr><td colspan="3" class="p-4 text-center text-gray-400">Memuat data...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal Konfirmasi Profesional -->
+<div id="confirmModal" class="fixed inset-0 z-[400] bg-black bg-opacity-70 hidden items-center justify-center p-4">
+  <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl transform transition-all scale-95 opacity-0 duration-300" id="confirmBox">
+    <div id="confirmIconWrap" class="w-14 h-14 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+      <span class="material-symbols-outlined text-3xl" id="confirmIcon">warning</span>
+    </div>
+    <h3 id="confirmTitle" class="text-base font-bold text-gray-800 mb-1">Konfirmasi Aksi</h3>
+    <p id="confirmMessage" class="text-xs text-gray-500 mb-6 leading-relaxed">Apakah Anda yakin ingin melanjutkan tindakan ini?</p>
+    <div class="flex space-x-3">
+      <button onclick="tutupKonfirmasi(false)" class="flex-1 py-2.5 border border-gray-300 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-100 transition">Batal</button>
+      <button id="confirmYesBtn" class="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow transition">Ya, Hapus</button>
+    </div>
+  </div>
+</div>
