@@ -1,0 +1,43 @@
+<div class="space-y-4 pb-12">
+  <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between gap-3">
+    <div>
+      <h2 class="text-lg font-bold text-gray-800 flex items-center">
+        <span class="material-symbols-outlined text-primary mr-2">photo_library</span> Galeri Al-Mubarok
+      </h2>
+      <p class="text-xs text-gray-500 mt-1">Dokumentasi kegiatan PAUD dan Santri Al-Mubarok Jayakerta.</p>
+    </div>
+  </div>
+
+  <div class="flex space-x-2 border-b pb-2">
+    <button onclick="setGaleriFilter('Semua')" id="btnGaleriSemua" class="galeri-filter-btn px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-full shadow-sm">Semua</button>
+    <button onclick="setGaleriFilter('PAUD')" id="btnGaleriPaud" class="galeri-filter-btn px-4 py-1.5 bg-white border text-gray-600 text-xs font-bold rounded-full shadow-sm">Galeri PAUD</button>
+    <button onclick="setGaleriFilter('Santri')" id="btnGaleriSantri" class="galeri-filter-btn px-4 py-1.5 bg-white border text-gray-600 text-xs font-bold rounded-full shadow-sm">Galeri Santri</button>
+  </div>
+
+  <div id="loaderGaleri" class="text-center py-10">
+    <span class="material-symbols-outlined animate-spin text-4xl text-primary">autorenew</span>
+    <p class="text-sm text-gray-500 mt-2">Memuat galeri foto...</p>
+  </div>
+
+  <div id="galleryGrid" class="grid grid-cols-2 md:grid-cols-3 gap-3 hidden"></div>
+</div>
+
+<!-- Modal Lightbox Preview Foto Galeri -->
+<div id="lightboxModal" class="fixed inset-0 z-[300] bg-black bg-opacity-95 hidden flex-col justify-center items-center opacity-0 transition-opacity duration-300 p-3">
+  <div class="absolute top-4 right-4 flex items-center space-x-3 z-10">
+    <button id="btnLightboxDownload" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-full transition flex items-center justify-center" title="Unduh Foto">
+      <span class="material-symbols-outlined text-[20px]">download</span>
+    </button>
+    <button onclick="tutupLightbox()" class="bg-red-600 hover:bg-red-700 text-white p-2 rounded-full transition flex items-center justify-center shadow-lg" title="Tutup">
+      <span class="material-symbols-outlined text-[22px]">close</span>
+    </button>
+  </div>
+  <div class="max-w-4xl max-h-[80vh] w-full flex flex-col items-center justify-center relative">
+    <img id="lightboxImg" src="" class="max-h-[70vh] max-w-full object-contain rounded-lg shadow-2xl border border-gray-800">
+    <div class="mt-3 text-center text-white">
+      <span id="lightboxBadge" class="bg-blue-600 text-[10px] font-bold px-2.5 py-0.5 rounded-full mb-1 inline-block"></span>
+      <h3 id="lightboxTitle" class="text-sm md:text-base font-bold"></h3>
+      <p id="lightboxDate" class="text-[11px] text-gray-400 mt-0.5"></p>
+    </div>
+  </div>
+</div>
