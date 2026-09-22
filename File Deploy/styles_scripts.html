@@ -1,0 +1,650 @@
+<style>
+  .animate-fade { animation: fadeIn 0.3s ease-out forwards; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+
+<script>
+  function gantiHalaman(targetPage) {
+    document.querySelectorAll('.page-section').forEach(el => {
+      el.classList.remove('page-active', 'animate-fade');
+    });
+    var targetEl = document.getElementById('view-' + targetPage);
+    if(targetEl) {
+      targetEl.classList.add('page-active', 'animate-fade');
+    }
+    document.querySelectorAll('.nav-btn').forEach(el => {
+      el.classList.remove('text-primary');
+      el.classList.add('text-gray-400');
+    });
+    var activeNav = document.getElementById('nav-' + targetPage);
+    if(activeNav) {
+      activeNav.classList.remove('text-gray-400');
+      activeNav.classList.add('text-primary');
+    }
+    window.scrollTo(0, 0);
+
+    if(targetPage === 'pustaka') muatKatalogBuku();
+    if(targetPage === 'acara') muatFeedAcara();
+    if(targetPage === 'galeri') muatGaleriFoto();
+    if(targetPage === 'admin') cekStatusLogin();
+  }
+
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  const tglEl = document.getElementById('tanggalHariIni');
+  if(tglEl) tglEl.innerText = new Date().toLocaleDateString('id-ID', options);
+
+  function convertDriveUrl(link) {
+    if (!link || typeof link !== 'string') return "";
+    const match = link.match(/[-\w]{25,}/);
+    if (match) {
+      return `https://lh3.googleusercontent.com/d/${match[0]}=s400`;
+    }
+    return link;
+  }
+
+  function getOriginalDriveUrl(link) {
+    if (!link || typeof link !== 'string') return "";
+    const match = link.match(/[-\w]{25,}/);
+    if (match) {
+      return `https://drive.google.com/uc?export=download&id=${match[0]}`;
+    }
+    return link;
+  }
+
+  // Pustaka
+  let allBooks = [];
+  let currentFilter = 'Semua';
+
+  function muatKatalogBuku() {
+    google.script.run
+      .withSuccessHandler(data => {
+        allBooks = data || [];
+        const loader = document.getElementById('loaderPustaka');
+        const grid = document.getElementById('bookGrid');
+        if(loader) loader.classList.add('hidden');
+        if(grid) grid.classList.remove('hidden');
+        filterBooks();
+      })
+      .withFailureHandler(err => {
+        console.error(err);
+        const loader = document.getElementById('loaderPustaka');
+        if(loader) loader.innerHTML = "<p class='text-xs text-red-500'>Gagal memuat pustaka.</p>";
+      })
+      .getBooksData();
+  }
+
+  function setFilter(category) {
+    currentFilter = category;
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.className = btn.innerText === category 
+        ? "filter-btn flex-none px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-full"
+        : "filter-btn flex-none px-4 py-1.5 bg-white border text-gray-600 text-xs font-bold rounded-full";
+    });
+    filterBooks();
+  }
+
+  function filterBooks() {
+    const searchEl = document.getElementById('searchInput');
+    const query = searchEl ? searchEl.value.toLowerCase() : '';
+    const grid = document.getElementById('bookGrid');
+    if(!grid) return;
+    grid.innerHTML = '';
+
+    const filtered = allBooks.filter(book => {
+      const matchSearch = (book.judul || "").toLowerCase().includes(query) || (book.penulis || "").toLowerCase().includes(query);
+      const matchCategory = currentFilter === 'Semua' || (book.kategori || "").includes(currentFilter);
+      return matchSearch && matchCategory;
+    });
+
+    if(filtered.length === 0) {
+      grid.innerHTML = `<div class="col-span-2 md:col-span-4 text-center py-10 text-gray-500 text-xs">Buku tidak ditemukan.</div>`;
+      return;
+    }
+
+    filtered.forEach(book => {
+      let coverSrc = convertDriveUrl(book.linkCover);
+      let hasCover = coverSrc !== "";
+
+      grid.innerHTML += `
+        <div class="bg-white border rounded-xl overflow-hidden shadow-sm flex flex-col">
+          <div class="relative bg-gray-100 aspect-[3/4] w-full border-b p-2">
+            ${hasCover ? `<img src="${coverSrc}" class="w-full h-full object-cover rounded shadow-sm" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
+            <div class="${hasCover ? 'hidden' : 'flex'} w-full h-full items-center justify-center bg-gray-200 rounded text-gray-400">
+              <span class="material-symbols-outlined text-3xl">menu_book</span>
+            </div>
+            <span class="absolute top-2 left-2 bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow">Tersedia</span>
+          </div>
+          <div class="p-3 flex flex-col flex-grow text-center">
+            <span class="text-[9px] text-primary font-bold mb-1 uppercase">${book.kategori || "UMUM"}</span>
+            <h3 class="text-xs font-bold text-gray-800 line-clamp-2 mb-1">${book.judul}</h3>
+            <p class="text-[10px] text-gray-500 mb-3">${book.penulis}</p>
+            <div class="mt-auto space-y-1.5">
+              <button onclick="bukaPdfReader('${book.judul.replace(/'/g, "")}', '${book.linkPdf}')" class="w-full bg-emerald-600 text-white text-[10px] font-bold py-1.5 rounded-full flex justify-center items-center hover:bg-emerald-700 transition">
+                <span class="material-symbols-outlined text-[14px] mr-1">menu_book</span> Baca PDF
+              </button>
+              <button onclick="unduhPdf('${book.linkPdf}')" class="w-full bg-white border border-primary text-primary text-[10px] font-bold py-1.5 rounded-full flex justify-center items-center hover:bg-blue-50 transition">
+                <span class="material-symbols-outlined text-[14px] mr-1">download</span> Unduh
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  function bukaPdfReader(judul, linkDrive) {
+    if (!linkDrive) { alert("File PDF belum tersedia."); return; }
+    const match = linkDrive.match(/[-\w]{25,}/);
+    const previewLink = match ? `https://drive.google.com/file/d/${match[0]}/preview` : linkDrive;
+
+    document.getElementById('pdfModalTitle').innerText = judul;
+    document.getElementById('pdfIframe').src = previewLink;
+    document.getElementById('btnPdfExternal').onclick = () => window.open(linkDrive, '_blank');
+    document.getElementById('btnPdfDownload').onclick = () => unduhPdf(linkDrive);
+
+    const modal = document.getElementById('pdfModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => modal.classList.remove('opacity-0'), 10);
+    document.querySelector('nav').style.display = 'none';
+  }
+
+  function tutupPdfReader() {
+    const modal = document.getElementById('pdfModal');
+    modal.classList.add('opacity-0');
+    setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); document.getElementById('pdfIframe').src = ""; }, 300);
+    document.querySelector('nav').style.display = 'block';
+  }
+
+  function unduhPdf(linkDrive) {
+    if (!linkDrive) return;
+    const match = linkDrive.match(/[-\w]{25,}/);
+    if (match) { window.open(`https://drive.google.com/uc?export=download&id=${match[0]}`, '_blank'); } 
+    else { window.open(linkDrive, '_blank'); }
+  }
+
+  // Acara
+  function muatFeedAcara() {
+    google.script.run
+      .withSuccessHandler(posts => {
+        const container = document.getElementById('postContainer');
+        document.getElementById('loaderAcara').classList.add('hidden');
+        container.classList.remove('hidden');
+        container.innerHTML = '';
+
+        if(!posts || posts.length === 0) {
+          container.innerHTML = `<p class="text-center text-xs text-gray-500 py-6">Belum ada postingan.</p>`;
+          return;
+        }
+
+        posts.forEach(post => {
+          let fotoSrc = convertDriveUrl(post.linkGambar);
+          let hasFoto = fotoSrc !== "";
+
+          container.innerHTML += `
+            <div class="bg-white border rounded-xl overflow-hidden shadow-sm">
+              ${hasFoto ? `<div class="w-full h-48 bg-gray-100"><img src="${fotoSrc}" class="w-full h-full object-cover"></div>` : ''}
+              <div class="p-4 space-y-2">
+                <div class="flex justify-between items-center">
+                  <span class="bg-yellow-100 text-yellow-800 text-[9px] font-bold px-2 py-0.5 rounded-full">${post.kategori}</span>
+                  <span class="text-[10px] text-gray-400">${post.tanggal}</span>
+                </div>
+                <h3 class="font-bold text-gray-800 text-sm">${post.judul}</h3>
+                <p class="text-xs text-gray-600 leading-relaxed">${post.isi}</p>
+                <div class="text-[10px] text-gray-400 pt-2 border-t">Oleh: ${post.penulis}</div>
+              </div>
+            </div>
+          `;
+        });
+      })
+      .getPostsData();
+  }
+
+  // Galeri & Lightbox
+  let allGallery = [];
+  let currentGaleriFilter = 'Semua';
+
+  function muatGaleriFoto() {
+    google.script.run
+      .withSuccessHandler(data => {
+        allGallery = data || [];
+        const loader = document.getElementById('loaderGaleri');
+        const grid = document.getElementById('galleryGrid');
+        if(loader) loader.classList.add('hidden');
+        if(grid) grid.classList.remove('hidden');
+        filterGaleri();
+      })
+      .withFailureHandler(err => {
+        console.error(err);
+        const loader = document.getElementById('loaderGaleri');
+        if(loader) loader.innerHTML = "<p class='text-xs text-red-500'>Gagal memuat galeri.</p>";
+      })
+      .getGalleryData();
+  }
+
+  function setGaleriFilter(kategori) {
+    currentGaleriFilter = kategori;
+    ['Semua', 'PAUD', 'Santri'].forEach(kat => {
+      const btn = document.getElementById('btnGaleri' + kat);
+      if(btn) {
+        btn.className = kat === kategori 
+          ? "galeri-filter-btn px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-full shadow-sm"
+          : "galeri-filter-btn px-4 py-1.5 bg-white border text-gray-600 text-xs font-bold rounded-full shadow-sm";
+      }
+    });
+    filterGaleri();
+  }
+
+  function filterGaleri() {
+    const grid = document.getElementById('galleryGrid');
+    if(!grid) return;
+    grid.innerHTML = '';
+
+    const filtered = allGallery.filter(item => {
+      return currentGaleriFilter === 'Semua' || item.kategori === currentGaleriFilter;
+    });
+
+    if(filtered.length === 0) {
+      grid.innerHTML = `<div class="col-span-2 md:col-span-3 text-center py-10 text-gray-500 text-xs">Belum ada foto dalam galeri ini.</div>`;
+      return;
+    }
+
+    filtered.forEach(item => {
+      let fotoSrc = convertDriveUrl(item.linkFoto);
+      let hasFoto = fotoSrc !== "";
+      let badgeColor = item.kategori === 'PAUD' ? 'bg-blue-600' : 'bg-emerald-600';
+      let safeJudul = (item.judul || "").replace(/'/g, "\\'");
+
+      grid.innerHTML += `
+        <div onclick="bukaLightbox('${item.linkFoto}', '${safeJudul}', '${item.kategori}', '${item.tanggal}')" class="bg-white border rounded-xl overflow-hidden shadow-sm flex flex-col cursor-pointer group hover:border-blue-500 transition">
+          <div class="relative bg-gray-100 aspect-square w-full border-b overflow-hidden">
+            ${hasFoto ? `<img src="${fotoSrc}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">` : `<div class="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400"><span class="material-symbols-outlined text-3xl">image</span></div>`}
+            <span class="absolute top-2 left-2 ${badgeColor} text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow">${item.kategori}</span>
+          </div>
+          <div class="p-3 flex flex-col flex-grow">
+            <h3 class="text-xs font-bold text-gray-800 line-clamp-2 mb-1 group-hover:text-primary transition">${item.judul}</h3>
+            <span class="text-[10px] text-gray-400 mt-auto">${item.tanggal}</span>
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  function bukaLightbox(linkFoto, judul, kategori, tanggal) {
+    if (!linkFoto) return;
+    let fullImgSrc = convertDriveUrl(linkFoto);
+    let originalDownload = getOriginalDriveUrl(linkFoto);
+
+    document.getElementById('lightboxImg').src = fullImgSrc;
+    document.getElementById('lightboxTitle').innerText = judul;
+    document.getElementById('lightboxBadge').innerText = kategori;
+    document.getElementById('lightboxDate').innerText = tanggal;
+    document.getElementById('btnLightboxDownload').onclick = () => window.open(originalDownload, '_blank');
+
+    const modal = document.getElementById('lightboxModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => modal.classList.remove('opacity-0'), 10);
+  }
+
+  function tutupLightbox() {
+    const modal = document.getElementById('lightboxModal');
+    modal.classList.add('opacity-0');
+    setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); document.getElementById('lightboxImg').src = ""; }, 300);
+  }
+
+  // Admin Auth & Management
+  function cekStatusLogin() {
+    const isLogged = sessionStorage.getItem('admin_logged');
+    if (isLogged === 'true') {
+      document.getElementById('adminLoginBox').classList.add('hidden');
+      document.getElementById('adminDashboardContent').classList.remove('hidden');
+      muatDataTabelAdmin();
+    } else {
+      document.getElementById('adminLoginBox').classList.remove('hidden');
+      document.getElementById('adminDashboardContent').classList.add('hidden');
+    }
+  }
+
+  function handleAdminLogin(e) {
+    e.preventDefault();
+    const u = document.getElementById('loginUser').value;
+    const p = document.getElementById('loginPass').value;
+    if (u === 'admin' && p === 'almubarok2026') {
+      sessionStorage.setItem('admin_logged', 'true');
+      cekStatusLogin();
+    } else {
+      alert("Username atau Password salah!");
+    }
+  }
+
+  function handleAdminLogout() {
+    sessionStorage.removeItem('admin_logged');
+    cekStatusLogin();
+  }
+
+  function switchAdminTab(type) {
+    const btnEbook = document.getElementById('tabBtnEbook');
+    const btnPost = document.getElementById('tabBtnPost');
+    const btnGaleri = document.getElementById('tabBtnGaleri');
+    const formEbook = document.getElementById('adminFormEbook');
+    const formPost = document.getElementById('adminFormPost');
+    const formGaleri = document.getElementById('adminFormGaleri');
+
+    if(type === 'ebook') {
+      btnEbook.className = "flex-1 py-3 text-[11px] font-bold text-primary border-b-2 border-primary bg-blue-50 transition";
+      btnPost.className = "flex-1 py-3 text-[11px] font-bold text-gray-500 transition";
+      btnGaleri.className = "flex-1 py-3 text-[11px] font-bold text-gray-500 transition";
+      formEbook.classList.remove('hidden'); formPost.classList.add('hidden'); formGaleri.classList.add('hidden');
+    } else if(type === 'post') {
+      btnPost.className = "flex-1 py-3 text-[11px] font-bold text-yellow-600 border-b-2 border-yellow-600 bg-yellow-50 transition";
+      btnEbook.className = "flex-1 py-3 text-[11px] font-bold text-gray-500 transition";
+      btnGaleri.className = "flex-1 py-3 text-[11px] font-bold text-gray-500 transition";
+      formPost.classList.remove('hidden'); formEbook.classList.add('hidden'); formGaleri.classList.add('hidden');
+    } else {
+      btnGaleri.className = "flex-1 py-3 text-[11px] font-bold text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50 transition";
+      btnEbook.className = "flex-1 py-3 text-[11px] font-bold text-gray-500 transition";
+      btnPost.className = "flex-1 py-3 text-[11px] font-bold text-gray-500 transition";
+      formGaleri.classList.remove('hidden'); formEbook.classList.add('hidden'); formPost.classList.add('hidden');
+    }
+  }
+
+  function muatDataTabelAdmin() {
+    google.script.run.withSuccessHandler(books => {
+      const tbody = document.getElementById('adminBookTableBody');
+      if(!tbody) return;
+      tbody.innerHTML = '';
+      if (!books || books.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="p-3 text-center text-gray-400">Belum ada buku.</td></tr>`;
+        return;
+      }
+      books.forEach(b => {
+        tbody.innerHTML += `
+          <tr class="border-b hover:bg-gray-50">
+            <td class="p-2.5 font-medium text-gray-800">${b.judul}</td>
+            <td class="p-2.5"><span class="bg-blue-100 text-blue-800 text-[9px] font-bold px-2 py-0.5 rounded">${b.kategori}</span></td>
+            <td class="p-2.5 text-center">
+              <button onclick="konfirmasiHapus('buku', '${b.id}')" class="bg-red-100 text-red-600 hover:bg-red-200 px-2.5 py-1 rounded font-bold text-[10px] transition">Hapus</button>
+            </td>
+          </tr>
+        `;
+      });
+    }).getBooksData();
+
+    google.script.run.withSuccessHandler(posts => {
+      const tbody = document.getElementById('adminPostTableBody');
+      if(!tbody) return;
+      tbody.innerHTML = '';
+      if (!posts || posts.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="p-3 text-center text-gray-400">Belum ada postingan.</td></tr>`;
+        return;
+      }
+      posts.forEach(p => {
+        tbody.innerHTML += `
+          <tr class="border-b hover:bg-gray-50">
+            <td class="p-2.5 font-medium text-gray-800">${p.judul}</td>
+            <td class="p-2.5 text-gray-500">${p.tanggal}</td>
+            <td class="p-2.5 text-center">
+              <button onclick="konfirmasiHapus('post', '${p.id}')" class="bg-red-100 text-red-600 hover:bg-red-200 px-2.5 py-1 rounded font-bold text-[10px] transition">Hapus</button>
+            </td>
+          </tr>
+        `;
+      });
+    }).getPostsData();
+
+    google.script.run.withSuccessHandler(items => {
+      const tbody = document.getElementById('adminGaleriTableBody');
+      if(!tbody) return;
+      tbody.innerHTML = '';
+      if (!items || items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="p-3 text-center text-gray-400">Belum ada foto galeri.</td></tr>`;
+        return;
+      }
+      items.forEach(g => {
+        tbody.innerHTML += `
+          <tr class="border-b hover:bg-gray-50">
+            <td class="p-2.5 font-medium text-gray-800">${g.judul}</td>
+            <td class="p-2.5"><span class="bg-indigo-100 text-indigo-800 text-[9px] font-bold px-2 py-0.5 rounded">${g.kategori}</span></td>
+            <td class="p-2.5 text-center">
+              <button onclick="konfirmasiHapus('galeri', '${g.id}')" class="bg-red-100 text-red-600 hover:bg-red-200 px-2.5 py-1 rounded font-bold text-[10px] transition">Hapus</button>
+            </td>
+          </tr>
+        `;
+      });
+    }).getGalleryData();
+  }
+
+  // Modal Konfirmasi Profesional
+  let pendingAction = null;
+
+  function konfirmasiHapus(tipe, id) {
+    const modal = document.getElementById('confirmModal');
+    const box = document.getElementById('confirmBox');
+    const msg = document.getElementById('confirmMessage');
+    const title = document.getElementById('confirmTitle');
+    const btnYes = document.getElementById('confirmYesBtn');
+
+    if(tipe === 'buku') {
+      title.innerText = "Hapus E-Book?";
+      msg.innerText = "Tindakan ini akan menghapus data e-book beserta file PDF & cover aslinya dari Google Drive secara permanen.";
+      pendingAction = () => eksekusiHapusBuku(id);
+    } else if(tipe === 'post') {
+      title.innerText = "Hapus Postingan?";
+      msg.innerText = "Postingan beserta foto dokumentasinya akan dihapus dari server.";
+      pendingAction = () => eksekusiHapusPost(id);
+    } else if(tipe === 'galeri') {
+      title.innerText = "Hapus Foto Galeri?";
+      msg.innerText = "Foto galeri ini akan dihapus dari database dan Google Drive.";
+      pendingAction = () => eksekusiHapusGaleri(id);
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => {
+      box.classList.remove('scale-95', 'opacity-0');
+      box.classList.add('scale-100', 'opacity-100');
+    }, 10);
+
+    btnYes.onclick = function() {
+      tutupKonfirmasi(true);
+    };
+  }
+
+  function tutupKonfirmasi(execute) {
+    const modal = document.getElementById('confirmModal');
+    const box = document.getElementById('confirmBox');
+
+    box.classList.remove('scale-100', 'opacity-100');
+    box.classList.add('scale-95', 'opacity-0');
+
+    setTimeout(() => {
+      modal.classList.remove('flex');
+      modal.classList.add('hidden');
+      if (execute && pendingAction) {
+        pendingAction();
+        pendingAction = null;
+      }
+    }, 200);
+  }
+
+  function eksekusiHapusBuku(id) {
+    google.script.run.withSuccessHandler(res => {
+      alert(res.message);
+      muatDataTabelAdmin();
+    }).deleteBook(id);
+  }
+
+  function eksekusiHapusPost(id) {
+    google.script.run.withSuccessHandler(res => {
+      alert(res.message);
+      muatDataTabelAdmin();
+    }).deletePost(id);
+  }
+
+  function eksekusiHapusGaleri(id) {
+    google.script.run.withSuccessHandler(res => {
+      alert(res.message);
+      muatDataTabelAdmin();
+    }).deleteGalleryItem(id);
+  }
+
+  function toggleMetodePdf(metode) {
+    const wrapFile = document.getElementById('wrapperInputFile');
+    const wrapLink = document.getElementById('wrapperInputLink');
+    if (metode === 'file') {
+      wrapFile.classList.remove('hidden');
+      wrapLink.classList.add('hidden');
+    } else {
+      wrapFile.classList.add('hidden');
+      wrapLink.classList.remove('hidden');
+    }
+  }
+
+  function submitBook(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmitBook');
+    btn.innerText = "Menyimpan...";
+    btn.disabled = true;
+
+    const form = e.target;
+    const metode = form.metodePdf.value;
+    const coverInput = form.coverFile.files[0];
+
+    const payload = {
+      judul: form.judul.value,
+      penulis: form.penulis.value,
+      kategori: form.kategori.value,
+      metodePdf: metode,
+      linkPdfUrl: metode === 'link' ? form.linkPdfUrl.value : ""
+    };
+
+    const prosesKirim = function() {
+      if (coverInput) {
+        readAsBase64(coverInput, function(coverBase64) {
+          payload.coverBytes = coverBase64;
+          payload.coverName = coverInput.name;
+          payload.coverMime = coverInput.type;
+          sendBookToServer(payload, form, btn);
+        });
+      } else {
+        sendBookToServer(payload, form, btn);
+      }
+    };
+
+    if (metode === 'file') {
+      const pdfInput = form.pdfFile.files[0];
+      if (!pdfInput) {
+        alert("Pilih file PDF terlebih dahulu!");
+        btn.innerText = "Simpan E-Book";
+        btn.disabled = false;
+        return;
+      }
+      readAsBase64(pdfInput, function(pdfBase64) {
+        payload.pdfBytes = pdfBase64;
+        payload.pdfName = pdfInput.name;
+        payload.pdfMime = pdfInput.type;
+        prosesKirim();
+      });
+    } else {
+      prosesKirim();
+    }
+  }
+
+  function sendBookToServer(payload, form, btn) {
+    google.script.run
+      .withSuccessHandler(res => {
+        alert(res.message);
+        if(res.success) { form.reset(); toggleMetodePdf('file'); muatDataTabelAdmin(); }
+        btn.innerText = "Simpan E-Book";
+        btn.disabled = false;
+      })
+      .withFailureHandler(err => {
+        alert("Gagal: " + err.message);
+        btn.innerText = "Simpan E-Book";
+        btn.disabled = false;
+      })
+      .uploadBookData(payload);
+  }
+
+  function submitPost(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmitPost');
+    btn.innerText = "Menerbitkan...";
+    btn.disabled = true;
+
+    const form = e.target;
+    const fotoInput = form.fotoFile.files[0];
+
+    readAsBase64(fotoInput, function(fotoBase64) {
+      const payload = {
+        judul: form.judul.value,
+        kategori: form.kategori.value,
+        isi: form.isi.value,
+        penulis: "Admin Al-Mubarok",
+        fotoBytes: fotoBase64,
+        fotoName: fotoInput.name,
+        fotoMime: fotoInput.type
+      };
+
+      google.script.run
+        .withSuccessHandler(res => {
+          alert(res.message);
+          if(res.success) { form.reset(); muatDataTabelAdmin(); }
+          btn.innerText = "Terbitkan Postingan";
+          btn.disabled = false;
+        })
+        .withFailureHandler(err => {
+          alert("Gagal: " + err.message);
+          btn.innerText = "Terbitkan Postingan";
+          btn.disabled = false;
+        })
+        .uploadPostData(payload);
+    });
+  }
+
+  function submitGaleri(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmitGaleri');
+    btn.innerText = "Mengunggah Foto...";
+    btn.disabled = true;
+
+    const form = e.target;
+    const fotoInput = form.fotoFile.files[0];
+
+    readAsBase64(fotoInput, function(fotoBase64) {
+      const payload = {
+        judul: form.judul.value,
+        kategori: form.kategori.value,
+        fotoBytes: fotoBase64,
+        fotoName: fotoInput.name,
+        fotoMime: fotoInput.type
+      };
+
+      google.script.run
+        .withSuccessHandler(res => {
+          alert(res.message);
+          if(res.success) { form.reset(); muatDataTabelAdmin(); }
+          btn.innerText = "Upload Foto Galeri";
+          btn.disabled = false;
+        })
+        .withFailureHandler(err => {
+          alert("Gagal: " + err.message);
+          btn.innerText = "Upload Foto Galeri";
+          btn.disabled = false;
+        })
+        .uploadGalleryData(payload);
+    });
+  }
+
+  function readAsBase64(file, callback) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const base64Data = e.target.result.split(',')[1];
+      callback(base64Data);
+    };
+    reader.readAsDataURL(file);
+  }
+</script>
