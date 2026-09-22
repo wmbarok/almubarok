@@ -1,0 +1,48 @@
+<div class="space-y-4 pb-8 relative">
+  <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between gap-3">
+    <div>
+      <h2 class="text-lg font-bold text-gray-800 flex items-center">
+        <span class="material-symbols-outlined text-primary mr-2">local_library</span> Pustaka Digital
+      </h2>
+      <p class="text-xs text-gray-500 font-medium mt-1" id="tanggalHariIni"></p>
+    </div>
+    <div class="relative w-full md:w-64">
+      <span class="material-symbols-outlined absolute left-3 top-2 text-gray-400">search</span>
+      <input type="text" id="searchInput" placeholder="Cari buku..." class="w-full pl-10 pr-4 py-2 bg-gray-50 border rounded-lg text-sm focus:ring-2 focus:ring-primary focus:outline-none" oninput="filterBooks()">
+    </div>
+  </div>
+
+  <div class="flex overflow-x-auto space-x-2 pb-2" style="scrollbar-width: none;">
+    <button onclick="setFilter('Semua')" class="filter-btn flex-none px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-full">Semua</button>
+    <button onclick="setFilter('PAUD')" class="filter-btn flex-none px-4 py-1.5 bg-white border text-gray-600 text-xs font-bold rounded-full">PAUD</button>
+    <button onclick="setFilter('DTA')" class="filter-btn flex-none px-4 py-1.5 bg-white border text-gray-600 text-xs font-bold rounded-full">DTA</button>
+  </div>
+
+  <div id="loaderPustaka" class="text-center py-10">
+    <span class="material-symbols-outlined animate-spin text-4xl text-primary">autorenew</span>
+    <p class="text-sm text-gray-500 mt-2">Memuat katalog...</p>
+  </div>
+
+  <div id="bookGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3 hidden"></div>
+</div>
+
+<div id="pdfModal" class="fixed inset-0 z-[200] bg-black bg-opacity-90 hidden flex-col opacity-0 transition-opacity duration-300">
+  <div class="bg-[#1a1a2e] text-white p-3 flex justify-between items-center border-b border-gray-700 shadow-md">
+    <div class="flex items-center text-sm font-bold truncate pr-4 max-w-[70%]">
+      <span class="material-symbols-outlined text-red-500 mr-2 text-[20px] bg-white rounded-sm">picture_as_pdf</span>
+      <span id="pdfModalTitle" class="truncate">Memuat Dokumen...</span>
+    </div>
+    <div class="flex items-center space-x-1 md:space-x-2">
+      <button id="btnPdfExternal" class="p-1.5 hover:bg-gray-700 rounded transition" title="Buka di Tab Baru"><span class="material-symbols-outlined text-[18px]">open_in_new</span></button>
+      <button id="btnPdfDownload" class="p-1.5 bg-blue-600 hover:bg-blue-700 rounded transition flex items-center shadow" title="Unduh"><span class="material-symbols-outlined text-[18px]">download</span></button>
+      <button onclick="tutupPdfReader()" class="p-1.5 hover:bg-red-600 rounded ml-1 transition"><span class="material-symbols-outlined text-[22px]">close</span></button>
+    </div>
+  </div>
+  <div class="flex-grow w-full h-full p-0 md:p-4 flex justify-center bg-gray-900 relative">
+    <div id="pdfLoader" class="absolute inset-0 flex flex-col items-center justify-center z-0">
+       <span class="material-symbols-outlined animate-spin text-white text-4xl mb-2">autorenew</span>
+       <span class="text-white text-xs font-semibold">Menyiapkan Dokumen...</span>
+    </div>
+    <iframe id="pdfIframe" src="" onload="document.getElementById('pdfLoader').style.display='none';" class="w-full h-full max-w-5xl bg-white shadow-2xl relative z-10 md:rounded-lg" style="border:none;"></iframe>
+  </div>
+</div>
